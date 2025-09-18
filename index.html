@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Question System</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- MathJax for LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Math Question System</h1>
+        </header>
+        
+        <main>
+            <div id="question-container" class="question-container">
+                <div class="question">
+                    <h2>Question</h2>
+                    <div id="question-text">
+                        <!-- LaTeX question will be rendered here -->
+                    </div>
+                </div>
+                
+                <div class="answer-section">
+                    <label for="answer-input">Your Answer:</label>
+                    <input type="text" id="answer-input" placeholder="Enter your answer here...">
+                    <button id="submit-btn" onclick="submitAnswer()">Submit Answer</button>
+                </div>
+            </div>
+            
+            <div id="feedback-container" class="feedback-container hidden">
+                <div id="feedback-content"></div>
+                <div id="action-buttons" class="action-buttons hidden">
+                    <button id="hint-btn" onclick="showHint()">Get Another Hint</button>
+                    <button id="try-again-btn" onclick="tryAgain()">Try Again</button>
+                </div>
+            </div>
+            
+            <div id="hint-feedback-container" class="hint-feedback-container hidden">
+                <p>Was this hint helpful?</p>
+                <button onclick="hintFeedback(true)">Yes</button>
+                <button onclick="hintFeedback(false)">No</button>
+            </div>
+            
+            <div id="stats-container" class="stats-container hidden">
+                <h3>Session Statistics</h3>
+                <div id="stats-content"></div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

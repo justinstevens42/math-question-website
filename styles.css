@@ -1,0 +1,289 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    color: white;
+    font-size: 2.5rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Question container */
+.question-container {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+}
+
+.question h2 {
+    color: #4a5568;
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+
+#question-text {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f7fafc;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+/* Answer section */
+.answer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.answer-section label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 1.1rem;
+}
+
+#answer-input {
+    padding: 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    transition: border-color 0.3s ease;
+}
+
+#answer-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#submit-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+#submit-btn:active {
+    transform: translateY(0);
+}
+
+/* Feedback container */
+.feedback-container {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+}
+
+.feedback-container.correct {
+    border-left: 5px solid #48bb78;
+}
+
+.feedback-container.incorrect {
+    border-left: 5px solid #f56565;
+}
+
+.feedback-container.hint {
+    border-left: 5px solid #ed8936;
+}
+
+#feedback-content {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+#feedback-content h3 {
+    margin-bottom: 15px;
+    color: #4a5568;
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.action-buttons button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#hint-btn {
+    background: #ed8936;
+    color: white;
+}
+
+#hint-btn:hover {
+    background: #dd6b20;
+    transform: translateY(-1px);
+}
+
+#try-again-btn {
+    background: #4299e1;
+    color: white;
+}
+
+#try-again-btn:hover {
+    background: #3182ce;
+    transform: translateY(-1px);
+}
+
+/* Hint feedback */
+.hint-feedback-container {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.hint-feedback-container p {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: #4a5568;
+}
+
+.hint-feedback-container button {
+    margin: 0 10px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hint-feedback-container button:first-of-type {
+    background: #48bb78;
+    color: white;
+}
+
+.hint-feedback-container button:first-of-type:hover {
+    background: #38a169;
+}
+
+.hint-feedback-container button:last-of-type {
+    background: #f56565;
+    color: white;
+}
+
+.hint-feedback-container button:last-of-type:hover {
+    background: #e53e3e;
+}
+
+/* Stats container */
+.stats-container {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.stats-container h3 {
+    color: #4a5568;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+#stats-content {
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .question-container,
+    .feedback-container,
+    .hint-feedback-container,
+    .stats-container {
+        padding: 20px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons button {
+        width: 100%;
+    }
+}
+
+/* MathJax styling */
+.MathJax {
+    font-size: 1.2em !important;
+}
+
+/* Animation for feedback */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.feedback-container,
+.hint-feedback-container,
+.stats-container {
+    animation: slideIn 0.5s ease-out;
+}
