@@ -5,6 +5,7 @@ let currentHintIndex = 0;
 let isFirstAttempt = true;
 let hintsUsed = [];
 let questions = []; // Will be loaded from JSON file
+let currentQuestionIndex = 0; // Track which question we're on
 let sessionStats = {
     totalQuestions: 0,
     correctFirstTry: 0,
@@ -12,36 +13,8 @@ let sessionStats = {
     finalHintBeforeSolve: null
 };
 
-// LaunchDarkly SDK initialization
-// You'll need this context later, but you can ignore it for now.
-const context = {
-  kind: 'user',
-  key: 'context-key-123abc'
-};
 
-// Initialize LaunchDarkly client when the page loads
-let ldClient = null;
-
-function initializeLaunchDarkly() {
-  if (window.LDClient) {
-    ldClient = window.LDClient.initialize('68ccd8b8987d6c09973312f0', context);
-    
-    ldClient.on('initialized', function () {
-      // Tracking your memberId lets us know you are connected.
-      ldClient.track('68ccd8b8987d6c09973312ef');
-      console.log('LaunchDarkly SDK successfully initialized!');
-    });
-  } else {
-    console.log('LaunchDarkly SDK not loaded yet, retrying...');
-    setTimeout(initializeLaunchDarkly, 100);
-  }
-}
-
-// Function to load questions from JSON file
 async function loadQuestions() {
-    // Show loading indicator
-    document.getElementById('question-text').innerHTML = '<div style="text-align: center; padding: 20px;">Loading questions...</div>';
-    
     try {
         const response = await fetch('questions.json');
         if (!response.ok) {
@@ -50,6 +23,7 @@ async function loadQuestions() {
         const data = await response.json();
         questions = data;
         console.log(`Loaded ${questions.length} questions from JSON file`);
+        // Do not log full questions to avoid exposing answers in console
         return true;
     } catch (error) {
         console.error('Error loading questions:', error);
@@ -58,6 +32,7 @@ async function loadQuestions() {
             id: 1,
             question: "What is 2 + 2?",
             answer: "4",
+            solution: "This is a basic arithmetic question. 2 + 2 = 4.",
             hints: [
                 "This is a basic arithmetic question.",
                 "Add the two numbers together.",
@@ -68,43 +43,27 @@ async function loadQuestions() {
     }
 }
 
-// Function to add a new question dynamically
-function addQuestion(questionData) {
-    // Generate a new ID if not provided
-    if (!questionData.id) {
-        questionData.id = Math.max(...questions.map(q => q.id), 0) + 1;
-    }
-    
-    questions.push(questionData);
-    console.log(`Added new question with ID ${questionData.id}`);
-    return questionData.id;
-}
-
-// Function to get all questions (useful for debugging or management)
-function getAllQuestions() {
-    return questions;
-}
-
-// Function to get a specific question by ID
-function getQuestionById(id) {
-    return questions.find(q => q.id === id);
-}
-
-// Initialize the application
 document.addEventListener('DOMContentLoaded', async function() {
     await loadQuestions();
     setupEventListeners();
-    initializeLaunchDarkly();
     
-    // Wait for MathJax to be ready before loading the first question
-    if (window.MathJax && MathJax.startup) {
-        MathJax.startup.promise.then(() => {
-            loadRandomQuestion();
-        });
-    } else {
-        // Fallback if MathJax isn't available
-        loadRandomQuestion();
-    }
+    // Robustly wait for MathJax to be ready
+    const waitForMathJaxReady = () => {
+        try {
+            if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+                window.MathJax.startup.promise.then(() => {
+                    console.log('MathJax is ready! Version:', window.MathJax.version);
+                    loadNextQuestion();
+                });
+                return;
+            }
+        } catch (e) {
+            console.warn('Error checking MathJax readiness, retrying...', e);
+        }
+        // Poll until MathJax is available
+        setTimeout(waitForMathJaxReady, 100);
+    };
+    waitForMathJaxReady();
 });
 
 function setupEventListeners() {
@@ -116,16 +75,45 @@ function setupEventListeners() {
     });
 }
 
-function loadRandomQuestion() {
-    const randomIndex = Math.floor(Math.random() * questions.length);
-    currentQuestion = questions[randomIndex];
+function loadNextQuestion() {
+    console.log('Loading next question...');
+    console.log('Available questions:', questions.length);
+    console.log('Current question index:', currentQuestionIndex);
+    
+    // Check if we've gone through all questions
+    if (currentQuestionIndex >= questions.length) {
+        // All questions completed - show completion message
+        document.getElementById('question-text').innerHTML = `
+            <div style="text-align: center; padding: 40px;">
+                <h2>🎉 Congratulations! 🎉</h2>
+                <p>You've completed all ${questions.length} math problems!</p>
+                <p>Great job working through each one systematically.</p>
+                <button onclick="resetSession()" style="margin-top: 20px; padding: 10px 20px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    Start Over
+                </button>
+            </div>
+        `;
+        document.getElementById('answer-input').style.display = 'none';
+        document.getElementById('submit-btn').style.display = 'none';
+        return;
+    }
+    
+    currentQuestion = questions[currentQuestionIndex];
+    console.log('Selected question id:', currentQuestion.id);
+    
     currentHints = [...currentQuestion.hints];
     currentHintIndex = 0;
     isFirstAttempt = true;
     hintsUsed = [];
     
-    // Update question display
-    document.getElementById('question-text').innerHTML = currentQuestion.question;
+    // Update question display with question number
+    document.getElementById('question-text').innerHTML = `
+        <div style="margin-bottom: 15px; font-weight: bold; color: #667eea; font-size: 1.1em;">
+            Problem ${currentQuestionIndex + 1} of ${questions.length}
+        </div>
+        ${currentQuestion.question}
+    `;
+    // Do not log question text to avoid exposing content in console
     
     // Hide feedback containers
     document.getElementById('feedback-container').classList.add('hidden');
@@ -134,8 +122,10 @@ function loadRandomQuestion() {
     
     // Clear answer input
     document.getElementById('answer-input').value = '';
+    document.getElementById('answer-input').style.display = 'block';
+    document.getElementById('submit-btn').style.display = 'block';
     
-    // Re-render MathJax with proper timing
+    // Re-render MathJax
     setTimeout(() => {
         if (window.MathJax && MathJax.typesetPromise) {
             MathJax.typesetPromise();
@@ -146,41 +136,22 @@ function loadRandomQuestion() {
 function submitAnswer() {
     const userAnswer = document.getElementById('answer-input').value.trim();
     const correctAnswer = currentQuestion.answer;
-    
-    if (!userAnswer) {
-        alert('Please enter an answer before submitting.');
-        return;
-    }
-    
-    const isCorrect = checkAnswer(userAnswer, correctAnswer);
-    
-    if (isCorrect) {
+
+    if (userAnswer === correctAnswer) {
         if (isFirstAttempt) {
+            sessionStats.correctFirstTry++;
             showCorrectAnswer();
         } else {
-            showCorrectAnswerWithHints();
+            showCorrectAnswer();
         }
     } else {
         if (isFirstAttempt) {
+            isFirstAttempt = false;
             showFirstHint();
         } else {
             showIncorrectAnswer();
         }
     }
-    
-    isFirstAttempt = false;
-}
-
-function checkAnswer(userAnswer, correctAnswer) {
-    // Normalize answers for comparison
-    const normalize = (answer) => {
-        return answer.toLowerCase()
-            .replace(/\s+/g, '')
-            .replace(/[()]/g, '')
-            .replace(/\^/g, '^');
-    };
-    
-    return normalize(userAnswer) === normalize(correctAnswer);
 }
 
 function showCorrectAnswer() {
@@ -189,29 +160,36 @@ function showCorrectAnswer() {
     
     feedbackContainer.className = 'feedback-container correct';
     
-    // Use solution field if available, otherwise fall back to simple answer
-    const solutionContent = currentQuestion.solution 
-        ? `<div class="solution">
-            <h4>Solution:</h4>
-            <p>${currentQuestion.solution}</p>
-           </div>`
-        : `<div class="solution">
-            <h4>Solution:</h4>
-            <p>${currentQuestion.question}</p>
-            <p><strong>Answer:</strong> $${currentQuestion.answer}$</p>
-           </div>`;
-    
-    feedbackContent.innerHTML = `
-        <h3>🎉 Correct!</h3>
-        <p>Great job! You got it right on the first try.</p>
-        ${solutionContent}
+    let feedbackHTML = `
+        <h3>Correct!</h3>
+        <p>Well done! Your answer is correct.</p>
     `;
     
+    // Add solution if available
+    if (currentQuestion.solution) {
+        feedbackHTML += `
+            <div class="solution">
+                <h4>Solution:</h4>
+                <p>${currentQuestion.solution}</p>
+            </div>
+        `;
+    }
+    
+    feedbackContent.innerHTML = feedbackHTML;
     feedbackContainer.classList.remove('hidden');
     
     // Update stats
     sessionStats.totalQuestions++;
-    sessionStats.correctFirstTry++;
+    if (hintsUsed.length > 0) {
+        sessionStats.hintsUsed += hintsUsed.length;
+        sessionStats.finalHintBeforeSolve = hintsUsed[hintsUsed.length - 1];
+    }
+    
+    // Move to next question after a delay
+    setTimeout(() => {
+        currentQuestionIndex++;
+        loadNextQuestion();
+    }, 3000);
     
     // Re-render MathJax
     setTimeout(() => {
@@ -219,61 +197,6 @@ function showCorrectAnswer() {
             MathJax.typesetPromise();
         }
     }, 100);
-    
-    // Show next question option
-    setTimeout(() => {
-        showNextQuestionOption();
-    }, 2000);
-}
-
-function showCorrectAnswerWithHints() {
-    const feedbackContainer = document.getElementById('feedback-container');
-    const feedbackContent = document.getElementById('feedback-content');
-    
-    feedbackContainer.className = 'feedback-container correct';
-    
-    // Use solution field if available, otherwise fall back to simple answer
-    const solutionContent = currentQuestion.solution 
-        ? `<div class="solution">
-            <h4>Solution:</h4>
-            <p>${currentQuestion.solution}</p>
-           </div>`
-        : `<div class="solution">
-            <h4>Solution:</h4>
-            <p>${currentQuestion.question}</p>
-            <p><strong>Answer:</strong> $${currentQuestion.answer}$</p>
-           </div>`;
-    
-    feedbackContent.innerHTML = `
-        <h3>🎉 Correct!</h3>
-        <p>Well done! You solved it after using ${hintsUsed.length} hint(s).</p>
-        ${solutionContent}
-        <div class="hints-used">
-            <h4>Hints you used:</h4>
-            <ul>
-                ${hintsUsed.map((hint, index) => `<li>${index + 1}. ${hint}</li>`).join('')}
-            </ul>
-        </div>
-    `;
-    
-    feedbackContainer.classList.remove('hidden');
-    
-    // Update stats
-    sessionStats.totalQuestions++;
-    sessionStats.hintsUsed += hintsUsed.length;
-    sessionStats.finalHintBeforeSolve = hintsUsed[hintsUsed.length - 1] || 'No hints used';
-    
-    // Re-render MathJax
-    setTimeout(() => {
-        if (window.MathJax && MathJax.typesetPromise) {
-            MathJax.typesetPromise();
-        }
-    }, 100);
-    
-    // Show next question option
-    setTimeout(() => {
-        showNextQuestionOption();
-    }, 2000);
 }
 
 function showFirstHint() {
@@ -281,22 +204,30 @@ function showFirstHint() {
     const feedbackContent = document.getElementById('feedback-content');
     
     feedbackContainer.className = 'feedback-container hint';
-    feedbackContent.innerHTML = `
+    
+    // Show all hints up to the current one
+    let hintsHTML = `
         <h3>Not quite right</h3>
-        <p>Here's a hint to help you:</p>
-        <div class="hint-content">
-            <p><strong>Hint:</strong> ${currentHints[currentHintIndex]}</p>
-        </div>
+        <p>Here are the hints to help you:</p>
     `;
     
+    for (let i = 0; i <= currentHintIndex; i++) {
+        hintsHTML += `
+            <div class="hint-content">
+                <p><strong>Hint ${i + 1}:</strong> ${currentHints[i]}</p>
+            </div>
+        `;
+    }
+    
+    feedbackContent.innerHTML = hintsHTML;
+    
     feedbackContainer.classList.remove('hidden');
-    document.getElementById('action-buttons').classList.remove('hidden');
     
     // Track hint usage
     hintsUsed.push(currentHints[currentHintIndex]);
     currentHintIndex++;
     
-    // Re-render MathJax for the hint
+    // Re-render MathJax for the hint with proper timing
     setTimeout(() => {
         if (window.MathJax && MathJax.typesetPromise) {
             MathJax.typesetPromise();
@@ -306,8 +237,49 @@ function showFirstHint() {
     // Show hint feedback for the first hint
     setTimeout(() => {
         document.getElementById('hint-feedback-container').classList.remove('hidden');
-        document.getElementById('action-buttons').classList.add('hidden');
     }, 1000);
+}
+
+function showHint() {
+    if (currentHintIndex < currentHints.length) {
+        const feedbackContainer = document.getElementById('feedback-container');
+        const feedbackContent = document.getElementById('feedback-content');
+        
+        feedbackContainer.className = 'feedback-container hint';
+        
+        // Show all hints up to the current one
+        let hintsHTML = `
+            <h3>Here are all the hints so far:</h3>
+        `;
+        
+        for (let i = 0; i <= currentHintIndex; i++) {
+            hintsHTML += `
+                <div class="hint-content">
+                    <p><strong>Hint ${i + 1}:</strong> ${currentHints[i]}</p>
+                </div>
+            `;
+        }
+        
+        feedbackContent.innerHTML = hintsHTML;
+        
+        // Track hint usage
+        hintsUsed.push(currentHints[currentHintIndex]);
+        currentHintIndex++;
+        
+        // Re-render MathJax for the hint with proper timing
+        setTimeout(() => {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise();
+            }
+        }, 100);
+        
+        // Show hint feedback
+        setTimeout(() => {
+            document.getElementById('hint-feedback-container').classList.remove('hidden');
+        }, 1000);
+    } else {
+        alert('No more hints available. Try to solve the problem!');
+    }
 }
 
 function showIncorrectAnswer() {
@@ -317,163 +289,46 @@ function showIncorrectAnswer() {
     feedbackContainer.className = 'feedback-container incorrect';
     feedbackContent.innerHTML = `
         <h3>Incorrect</h3>
-        <p>That's not the right answer. Would you like to try again or get another hint?</p>
+        <p>That's not the right answer.</p>
     `;
     
     feedbackContainer.classList.remove('hidden');
-    document.getElementById('action-buttons').classList.remove('hidden');
 }
 
-function showHint() {
-    if (currentHintIndex < currentHints.length) {
-        const feedbackContainer = document.getElementById('feedback-container');
-        const feedbackContent = document.getElementById('feedback-content');
-        
-        feedbackContainer.className = 'feedback-container hint';
-        feedbackContent.innerHTML = `
-            <h3>Here's another hint:</h3>
-            <div class="hint-content">
-                <p><strong>Hint ${currentHintIndex + 1}:</strong> ${currentHints[currentHintIndex]}</p>
-            </div>
-        `;
-        
-        // Track hint usage
-        hintsUsed.push(currentHints[currentHintIndex]);
-        currentHintIndex++;
-        
-        // Re-render MathJax for the hint
-        setTimeout(() => {
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise();
-            }
-        }, 100);
-        
-        // Show hint feedback
-        document.getElementById('hint-feedback-container').classList.remove('hidden');
-        document.getElementById('action-buttons').classList.add('hidden');
+function hintFeedback(helpful) {
+    console.log('Hint feedback:', helpful);
+    
+    // Hide the feedback container
+    document.getElementById('hint-feedback-container').classList.add('hidden');
+    
+    // You can add more sophisticated tracking here if needed
+    if (helpful) {
+        console.log('User found the hint helpful');
     } else {
-        alert('No more hints available. Try to solve the problem!');
+        console.log('User did not find the hint helpful');
     }
 }
 
-function tryAgain() {
-    // Clear answer input
-    document.getElementById('answer-input').value = '';
-    
-    // Hide feedback containers
-    document.getElementById('feedback-container').classList.add('hidden');
-    document.getElementById('hint-feedback-container').classList.add('hidden');
-    
-    // Focus on answer input
-    document.getElementById('answer-input').focus();
-}
-
-function hintFeedback(wasHelpful) {
-    // Hide hint feedback container
-    document.getElementById('hint-feedback-container').classList.add('hidden');
-    
-    // Show action buttons again
-    document.getElementById('action-buttons').classList.remove('hidden');
-    
-    // You could store this feedback for analytics
-    console.log(`Hint was helpful: ${wasHelpful}`);
-}
-
-function showNextQuestionOption() {
-    const feedbackContent = document.getElementById('feedback-content');
-    const nextQuestionHTML = `
-        <div style="margin-top: 20px; text-align: center;">
-            <button onclick="loadRandomQuestion()" style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                border: none;
-                padding: 15px 30px;
-                border-radius: 10px;
-                font-size: 1.1rem;
-                font-weight: 600;
-                cursor: pointer;
-                transition: transform 0.2s ease;
-            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                Next Question
-            </button>
-            <button onclick="showStats()" style="
-                background: #48bb78;
-                color: white;
-                border: none;
-                padding: 15px 30px;
-                border-radius: 10px;
-                font-size: 1.1rem;
-                font-weight: 600;
-                cursor: pointer;
-                margin-left: 15px;
-                transition: transform 0.2s ease;
-            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                View Statistics
-            </button>
-        </div>
-    `;
-    
-    feedbackContent.innerHTML += nextQuestionHTML;
-}
-
-function showStats() {
-    const statsContainer = document.getElementById('stats-container');
-    const statsContent = document.getElementById('stats-content');
-    
-    const accuracy = sessionStats.totalQuestions > 0 ? 
-        ((sessionStats.correctFirstTry / sessionStats.totalQuestions) * 100).toFixed(1) : 0;
-    
-    statsContent.innerHTML = `
-        <div class="stat-item">
-            <strong>Total Questions:</strong> ${sessionStats.totalQuestions}
-        </div>
-        <div class="stat-item">
-            <strong>Correct on First Try:</strong> ${sessionStats.correctFirstTry} (${accuracy}%)
-        </div>
-        <div class="stat-item">
-            <strong>Total Hints Used:</strong> ${sessionStats.hintsUsed}
-        </div>
-        <div class="stat-item">
-            <strong>Average Hints per Question:</strong> ${sessionStats.totalQuestions > 0 ? 
-                (sessionStats.hintsUsed / sessionStats.totalQuestions).toFixed(1) : 0}
-        </div>
-        ${sessionStats.finalHintBeforeSolve ? `
-        <div class="stat-item">
-            <strong>Last Hint Used:</strong> "${sessionStats.finalHintBeforeSolve}"
-        </div>
-        ` : ''}
-        <div style="margin-top: 20px; text-align: center;">
-            <button onclick="resetStats()" style="
-                background: #f56565;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                cursor: pointer;
-                margin-right: 10px;
-            ">Reset Statistics</button>
-            <button onclick="document.getElementById('stats-container').classList.add('hidden')" style="
-                background: #4299e1;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                cursor: pointer;
-            ">Close</button>
-        </div>
-    `;
-    
-    statsContainer.classList.remove('hidden');
-}
-
-function resetStats() {
+function resetSession() {
+    currentQuestionIndex = 0;
     sessionStats = {
         totalQuestions: 0,
         correctFirstTry: 0,
         hintsUsed: 0,
         finalHintBeforeSolve: null
     };
-    
-    document.getElementById('stats-container').classList.add('hidden');
-    alert('Statistics have been reset!');
+    loadNextQuestion();
+}
+
+// Utility functions for question management
+function addQuestion(question) {
+    questions.push(question);
+}
+
+function getAllQuestions() {
+    return questions;
+}
+
+function getQuestionById(id) {
+    return questions.find(q => q.id === id);
 }

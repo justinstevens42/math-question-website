@@ -5,19 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Math Question System</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:,">
     <!-- MathJax for LaTeX rendering -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- LaunchDarkly SDK -->
-    <script src="https://unpkg.com/launchdarkly-js-client-sdk@3/dist/launchdarkly-js-client-sdk.min.js"></script>
+    <!-- Configure MathJax BEFORE loading the library -->
     <script>
         window.MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
                 displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            startup: {
+                ready: function () {
+                    // Ensure default startup behavior, then log version
+                    MathJax.startup.defaultReady();
+                    console.log('MathJax ready (startup.ready). Version:', MathJax.version);
+                }
             }
         };
     </script>
+    <!-- Load MathJax library AFTER config -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
     <div class="container">
@@ -43,10 +50,6 @@
             
             <div id="feedback-container" class="feedback-container hidden">
                 <div id="feedback-content"></div>
-                <div id="action-buttons" class="action-buttons hidden">
-                    <button id="hint-btn" onclick="showHint()">Get Another Hint</button>
-                    <button id="try-again-btn" onclick="tryAgain()">Try Again</button>
-                </div>
             </div>
             
             <div id="hint-feedback-container" class="hint-feedback-container hidden">

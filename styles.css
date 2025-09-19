@@ -53,7 +53,6 @@ header h1 {
     border-radius: 10px;
     border-left: 4px solid #667eea;
     overflow-x: auto;
-    word-wrap: break-word;
 }
 
 /* Answer section */
@@ -129,7 +128,6 @@ header h1 {
     font-size: 1.1rem;
     margin-bottom: 20px;
     overflow-x: auto;
-    word-wrap: break-word;
 }
 
 .solution {
@@ -139,7 +137,6 @@ header h1 {
     border-radius: 8px;
     border-left: 3px solid #28a745;
     overflow-x: auto;
-    word-wrap: break-word;
 }
 
 .solution h4 {
@@ -156,11 +153,10 @@ header h1 {
 .hint-content {
     margin-top: 15px;
     padding: 15px;
-    background: #fff3cd;
+    background: #f8f9fa;
     border-radius: 8px;
-    border-left: 3px solid #ffc107;
+    border-left: 3px solid #667eea;
     overflow-x: auto;
-    word-wrap: break-word;
 }
 
 .hint-content p {
@@ -308,6 +304,18 @@ header h1 {
 /* MathJax styling */
 .MathJax {
     font-size: 1.2em !important;
+}
+
+/* Ensure MathJax elements don't get cut off */
+.MathJax_Display {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+/* Better handling of long mathematical expressions */
+.MathJax_SVG {
+    max-width: 100%;
+    height: auto;
 }
 
 /* Animation for feedback */
