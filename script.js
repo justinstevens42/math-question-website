@@ -188,14 +188,23 @@ function showCorrectAnswer() {
     const feedbackContent = document.getElementById('feedback-content');
     
     feedbackContainer.className = 'feedback-container correct';
-    feedbackContent.innerHTML = `
-        <h3>🎉 Correct!</h3>
-        <p>Great job! You got it right on the first try.</p>
-        <div class="solution">
+    
+    // Use solution field if available, otherwise fall back to simple answer
+    const solutionContent = currentQuestion.solution 
+        ? `<div class="solution">
+            <h4>Solution:</h4>
+            <p>${currentQuestion.solution}</p>
+           </div>`
+        : `<div class="solution">
             <h4>Solution:</h4>
             <p>${currentQuestion.question}</p>
             <p><strong>Answer:</strong> $${currentQuestion.answer}$</p>
-        </div>
+           </div>`;
+    
+    feedbackContent.innerHTML = `
+        <h3>🎉 Correct!</h3>
+        <p>Great job! You got it right on the first try.</p>
+        ${solutionContent}
     `;
     
     feedbackContainer.classList.remove('hidden');
@@ -205,9 +214,11 @@ function showCorrectAnswer() {
     sessionStats.correctFirstTry++;
     
     // Re-render MathJax
-    if (window.MathJax) {
-        MathJax.typesetPromise();
-    }
+    setTimeout(() => {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise();
+        }
+    }, 100);
     
     // Show next question option
     setTimeout(() => {
@@ -220,14 +231,23 @@ function showCorrectAnswerWithHints() {
     const feedbackContent = document.getElementById('feedback-content');
     
     feedbackContainer.className = 'feedback-container correct';
-    feedbackContent.innerHTML = `
-        <h3>🎉 Correct!</h3>
-        <p>Well done! You solved it after using ${hintsUsed.length} hint(s).</p>
-        <div class="solution">
+    
+    // Use solution field if available, otherwise fall back to simple answer
+    const solutionContent = currentQuestion.solution 
+        ? `<div class="solution">
+            <h4>Solution:</h4>
+            <p>${currentQuestion.solution}</p>
+           </div>`
+        : `<div class="solution">
             <h4>Solution:</h4>
             <p>${currentQuestion.question}</p>
             <p><strong>Answer:</strong> $${currentQuestion.answer}$</p>
-        </div>
+           </div>`;
+    
+    feedbackContent.innerHTML = `
+        <h3>🎉 Correct!</h3>
+        <p>Well done! You solved it after using ${hintsUsed.length} hint(s).</p>
+        ${solutionContent}
         <div class="hints-used">
             <h4>Hints you used:</h4>
             <ul>
@@ -244,9 +264,11 @@ function showCorrectAnswerWithHints() {
     sessionStats.finalHintBeforeSolve = hintsUsed[hintsUsed.length - 1] || 'No hints used';
     
     // Re-render MathJax
-    if (window.MathJax) {
-        MathJax.typesetPromise();
-    }
+    setTimeout(() => {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise();
+        }
+    }, 100);
     
     // Show next question option
     setTimeout(() => {
