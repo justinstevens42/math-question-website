@@ -1,4 +1,3 @@
-import * as LDClient from 'launchdarkly-js-client-sdk';
 
 // Global state
 let currentQuestion = null;
@@ -19,38 +18,39 @@ let sessionStats = {
 let ldClient = null;
 let activeHintVariant = 'control'; // default if LD unavailable
 
-
-
 function initializeLaunchDarkly() {
-    try {
-        // Skip LD on localhost only
-        const host = (typeof location !== 'undefined' && location.hostname) || '';
-        if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
-            console.log('Skipping LaunchDarkly on localhost');
-            return;
-        }
-        const context = {
-            kind: 'user',
-            key: 'context-key-123abc'
-        };
-
-        const client = LDClient.initialize('68ccd8b8987d6c09973312f0', context);
-        client.on('initialized', function () {
-            client.track('68ccd8b8987d6c09973312ef');
-            console.log('SDK successfully initialized!');
-        });
-        // Keep variant logic if the flag exists
-        client.on('ready', function () {
-            try {
-                activeHintVariant = client.variation('hints-llm-variant', 'control');
-                console.log('Using hint variant:', activeHintVariant);
-            } catch (_) { /* ignore */ }
-        });
-        // expose for tracking helpers
-        ldClient = client;
-    } catch (e) {
-        console.warn('LaunchDarkly init error:', e);
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+        console.log("Skipping LaunchDarkly on localhost.");
+        return;
     }
+
+    // Wait for the SDK to be available on the window object
+    if (!window.LDClient) {
+        window.addEventListener('load', initializeLaunchDarkly, { once: true });
+        console.log("LaunchDarkly SDK not ready, will try again on page load.");
+        return;
+    }
+
+    // Verbatim initialization code
+    const context = {
+      kind: 'user',
+      key: 'context-key-123abc' // Should be a unique, stable identifier for production
+    };
+    const client = window.LDClient.initialize('68ccd8b8987d6c09973312f0', context);
+
+    client.on('initialized', function () {
+      // Tracking your memberId lets us know you are connected.
+      client.track('68ccd8b8987d6c09973312ef');
+      console.log('SDK successfully initialized!');
+    });
+
+    // Wire up the client for our experiment logic
+    ldClient = client;
+    ldClient.on('ready', function () {
+        activeHintVariant = ldClient.variation('hints-llm-variant', 'control');
+        console.log('Using hint variant:', activeHintVariant);
+    });
 }
 
 // Safe tracking wrapper; no-ops if LD unavailable
