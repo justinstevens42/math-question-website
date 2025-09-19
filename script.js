@@ -17,30 +17,54 @@ let sessionStats = {
 let ldClient = null;
 let activeHintVariant = 'control'; // default if LD unavailable
 
-function initializeLaunchDarkly(retries = 50) {
-    // Wait for the SDK script to be available (useful on localhost / slow networks)
-    if (!window.LDClient) {
-        if (retries > 0) {
-            return setTimeout(() => initializeLaunchDarkly(retries - 1), 100);
-        }
-        console.warn('LaunchDarkly SDK not loaded; running without experiments.');
-        return;
+// Support both browser (CDN) and bundler (require) environments
+let LDClient = null;
+try {
+    if (typeof window !== 'undefined' && window.LDClient) {
+        LDClient = window.LDClient;
+    } else if (typeof require === 'function') {
+        // This will work only if bundled; harmless in browser where require is undefined
+        // eslint-disable-next-line no-undef
+        LDClient = require('launchdarkly-js-client-sdk');
     }
+} catch (_) { /* ignore */ }
+
+function initializeLaunchDarkly(retries = 50) {
     try {
+        console.log('Initializing LaunchDarkly...');
+        // Resolve the client reference freshly each time (in case CDN loaded late)
+        let LD = LDClient;
+        if (!LD && typeof window !== 'undefined' && window.LDClient) {
+            LD = window.LDClient;
+        } else if (!LD && typeof require === 'function') {
+            // eslint-disable-next-line no-undef
+            LD = require('launchdarkly-js-client-sdk');
+        }
+
+        if (!LD || typeof LD.initialize !== 'function') {
+            if (retries > 0) {
+                return setTimeout(() => initializeLaunchDarkly(retries - 1), 150);
+            }
+            console.warn('LD client still not available after retries; skipping experiments.');
+            return;
+        }
+
         const context = { kind: 'user', key: 'context-key-123abc' };
-        ldClient = window.LDClient.initialize('68ccd8b8987d6c09973312f0', context);
+        ldClient = LD.initialize('68ccd8b8987d6c09973312f0', context);
         ldClient.on('initialized', function () {
-            // Tracking your memberId lets us know you are connected.
             ldClient.track('68ccd8b8987d6c09973312ef');
             console.log('SDK successfully initialized!');
         });
-        // Evaluate variant for hints; assumes a string flag 'hints-llm-variant'
         ldClient.on('ready', function () {
             activeHintVariant = ldClient.variation('hints-llm-variant', 'control');
             console.log('Using hint variant:', activeHintVariant);
         });
     } catch (e) {
-        console.warn('LaunchDarkly init error:', e);
+        if (retries > 0) {
+            setTimeout(() => initializeLaunchDarkly(retries - 1), 150);
+        } else {
+            console.warn('LaunchDarkly init failed after retries:', e);
+        }
     }
 }
 
