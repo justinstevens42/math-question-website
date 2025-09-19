@@ -146,10 +146,17 @@ function submitAnswer() {
         }
     } else {
         if (isFirstAttempt) {
+            // First wrong attempt → show the first hint
             isFirstAttempt = false;
             showFirstHint();
         } else {
-            showIncorrectAnswer();
+            // Subsequent wrong attempts → show next hint while available
+            if (currentHintIndex < currentHints.length) {
+                showHint();
+            } else {
+                // No more hints left → reveal solution
+                showSolutionAfterHints();
+            }
         }
     }
 }
@@ -175,6 +182,23 @@ function showCorrectAnswer() {
         `;
     }
     
+    // Append a manual Next Question button so the solution stays visible
+    feedbackHTML += `
+        <div style="margin-top: 20px; text-align: center;">
+            <button id="next-question-btn" onclick="goToNextQuestion()" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;">
+                Next Question
+            </button>
+        </div>
+    `;
+
     feedbackContent.innerHTML = feedbackHTML;
     feedbackContainer.classList.remove('hidden');
     
@@ -185,18 +209,22 @@ function showCorrectAnswer() {
         sessionStats.finalHintBeforeSolve = hintsUsed[hintsUsed.length - 1];
     }
     
-    // Move to next question after a delay
-    setTimeout(() => {
-        currentQuestionIndex++;
-        loadNextQuestion();
-    }, 3000);
-    
     // Re-render MathJax
     setTimeout(() => {
         if (window.MathJax && MathJax.typesetPromise) {
             MathJax.typesetPromise();
         }
     }, 100);
+}
+
+// Handler for the Next Question button to advance explicitly
+function goToNextQuestion() {
+    const nextBtn = document.getElementById('next-question-btn');
+    if (nextBtn) {
+        nextBtn.disabled = true;
+    }
+    currentQuestionIndex++;
+    loadNextQuestion();
 }
 
 function showFirstHint() {
@@ -293,6 +321,54 @@ function showIncorrectAnswer() {
     `;
     
     feedbackContainer.classList.remove('hidden');
+}
+
+// When the learner has used all hints and is still incorrect, reveal the solution
+function showSolutionAfterHints() {
+    const feedbackContainer = document.getElementById('feedback-container');
+    const feedbackContent = document.getElementById('feedback-content');
+    
+    feedbackContainer.className = 'feedback-container hint';
+    
+    let html = `
+        <h3>Out of hints</h3>
+        <p>No more hints available. Here's the solution:</p>
+        <div class="solution">
+            <h4>Solution:</h4>
+            <p>${currentQuestion.solution || 'Solution unavailable.'}</p>
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
+            <button id="next-question-btn" onclick="goToNextQuestion()" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;">
+                Next Question
+            </button>
+        </div>
+    `;
+    
+    feedbackContent.innerHTML = html;
+    feedbackContainer.classList.remove('hidden');
+    document.getElementById('hint-feedback-container').classList.add('hidden');
+    
+    // Update stats similar to the correct flow (but without incrementing correctFirstTry)
+    sessionStats.totalQuestions++;
+    if (hintsUsed.length > 0) {
+        sessionStats.hintsUsed += hintsUsed.length;
+        sessionStats.finalHintBeforeSolve = hintsUsed[hintsUsed.length - 1];
+    }
+    
+    // Typeset any math in the solution
+    setTimeout(() => {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise();
+        }
+    }, 100);
 }
 
 function hintFeedback(helpful) {
