@@ -11,6 +11,31 @@ let sessionStats = {
     finalHintBeforeSolve: null
 };
 
+// LaunchDarkly SDK initialization
+// You'll need this context later, but you can ignore it for now.
+const context = {
+  kind: 'user',
+  key: 'context-key-123abc'
+};
+
+// Initialize LaunchDarkly client when the page loads
+let ldClient = null;
+
+function initializeLaunchDarkly() {
+  if (window.LDClient) {
+    ldClient = window.LDClient.initialize('68ccd8b8987d6c09973312f0', context);
+    
+    ldClient.on('initialized', function () {
+      // Tracking your memberId lets us know you are connected.
+      ldClient.track('68ccd8b8987d6c09973312ef');
+      console.log('LaunchDarkly SDK successfully initialized!');
+    });
+  } else {
+    console.log('LaunchDarkly SDK not loaded yet, retrying...');
+    setTimeout(initializeLaunchDarkly, 100);
+  }
+}
+
 // Sample questions with LaTeX and hints
 const questions = [
     {
@@ -94,6 +119,7 @@ const questions = [
 document.addEventListener('DOMContentLoaded', function() {
     loadRandomQuestion();
     setupEventListeners();
+    initializeLaunchDarkly();
 });
 
 function setupEventListeners() {
