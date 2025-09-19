@@ -39,6 +39,9 @@ function initializeLaunchDarkly() {
 
 // Function to load questions from JSON file
 async function loadQuestions() {
+    // Show loading indicator
+    document.getElementById('question-text').innerHTML = '<div style="text-align: center; padding: 20px;">Loading questions...</div>';
+    
     try {
         const response = await fetch('questions.json');
         if (!response.ok) {
@@ -90,9 +93,18 @@ function getQuestionById(id) {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async function() {
     await loadQuestions();
-    loadRandomQuestion();
     setupEventListeners();
     initializeLaunchDarkly();
+    
+    // Wait for MathJax to be ready before loading the first question
+    if (window.MathJax && MathJax.startup) {
+        MathJax.startup.promise.then(() => {
+            loadRandomQuestion();
+        });
+    } else {
+        // Fallback if MathJax isn't available
+        loadRandomQuestion();
+    }
 });
 
 function setupEventListeners() {
@@ -123,10 +135,12 @@ function loadRandomQuestion() {
     // Clear answer input
     document.getElementById('answer-input').value = '';
     
-    // Re-render MathJax
-    if (window.MathJax) {
-        MathJax.typesetPromise();
-    }
+    // Re-render MathJax with proper timing
+    setTimeout(() => {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise();
+        }
+    }, 100);
 }
 
 function submitAnswer() {
