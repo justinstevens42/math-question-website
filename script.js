@@ -13,6 +13,63 @@ let sessionStats = {
     finalHintBeforeSolve: null
 };
 
+// --- LaunchDarkly setup (A/B hints) ---
+let ldClient = null;
+let activeHintVariant = 'control'; // default if LD unavailable
+
+function initializeLaunchDarkly(retries = 50) {
+    // Wait for the SDK script to be available (useful on localhost / slow networks)
+    if (!window.LDClient) {
+        if (retries > 0) {
+            return setTimeout(() => initializeLaunchDarkly(retries - 1), 100);
+        }
+        console.warn('LaunchDarkly SDK not loaded; running without experiments.');
+        return;
+    }
+    try {
+        const context = { kind: 'user', key: 'context-key-123abc' };
+        ldClient = window.LDClient.initialize('68ccd8b8987d6c09973312f0', context);
+        ldClient.on('initialized', function () {
+            // Tracking your memberId lets us know you are connected.
+            ldClient.track('68ccd8b8987d6c09973312ef');
+            console.log('SDK successfully initialized!');
+        });
+        // Evaluate variant for hints; assumes a string flag 'hints-llm-variant'
+        ldClient.on('ready', function () {
+            activeHintVariant = ldClient.variation('hints-llm-variant', 'control');
+            console.log('Using hint variant:', activeHintVariant);
+        });
+    } catch (e) {
+        console.warn('LaunchDarkly init error:', e);
+    }
+}
+
+// Safe tracking wrapper; no-ops if LD unavailable
+function ldTrack(eventKey, data, value) {
+    try {
+        if (ldClient && typeof ldClient.track === 'function') {
+            ldClient.track(eventKey, data, value);
+        }
+    } catch (_) { /* ignore */ }
+}
+
+// Select hint steps for a question, supporting two schemas:
+// 1) hints: string[]
+// 2) hints: Array<{ variant: string, steps: string[] }>
+function selectHintSteps(question) {
+    const hints = question.hints || [];
+    if (!Array.isArray(hints)) return [];
+    if (hints.length === 0) return [];
+    if (typeof hints[0] === 'string') return hints; // simple schema
+
+    // variant schema
+    const variantName = activeHintVariant || 'control';
+    const match = hints.find(h => h && h.variant === variantName);
+    const control = hints.find(h => h && h.variant === 'control');
+    const chosen = match || control || hints[0];
+    return Array.isArray(chosen.steps) ? chosen.steps : [];
+}
+
 
 async function loadQuestions() {
     try {
@@ -46,6 +103,7 @@ async function loadQuestions() {
 document.addEventListener('DOMContentLoaded', async function() {
     await loadQuestions();
     setupEventListeners();
+    initializeLaunchDarkly();
     
     // Robustly wait for MathJax to be ready
     const waitForMathJaxReady = () => {
@@ -101,7 +159,7 @@ function loadNextQuestion() {
     currentQuestion = questions[currentQuestionIndex];
     console.log('Selected question id:', currentQuestion.id);
     
-    currentHints = [...currentQuestion.hints];
+    currentHints = selectHintSteps(currentQuestion);
     currentHintIndex = 0;
     isFirstAttempt = true;
     hintsUsed = [];
@@ -138,6 +196,8 @@ function submitAnswer() {
     const correctAnswer = currentQuestion.answer;
 
     if (userAnswer === correctAnswer) {
+        // Track solve event
+        ldTrack('solve-correct', { variant: activeHintVariant, questionId: currentQuestion.id }, 1);
         if (isFirstAttempt) {
             sessionStats.correctFirstTry++;
             showCorrectAnswer();
@@ -145,6 +205,8 @@ function submitAnswer() {
             showCorrectAnswer();
         }
     } else {
+        // Track incorrect attempt as 0 for solve metric (optional)
+        ldTrack('solve-correct', { variant: activeHintVariant, questionId: currentQuestion.id }, 0);
         if (isFirstAttempt) {
             // First wrong attempt → show the first hint
             isFirstAttempt = false;
@@ -372,17 +434,14 @@ function showSolutionAfterHints() {
 }
 
 function hintFeedback(helpful) {
-    console.log('Hint feedback:', helpful);
+    // Track hint helpfulness per variant
+    ldTrack('hint-helpful', { variant: activeHintVariant, questionId: currentQuestion.id }, helpful ? 1 : 0);
     
     // Hide the feedback container
     document.getElementById('hint-feedback-container').classList.add('hidden');
     
     // You can add more sophisticated tracking here if needed
-    if (helpful) {
-        console.log('User found the hint helpful');
-    } else {
-        console.log('User did not find the hint helpful');
-    }
+    // Optional additional instrumentation could go here
 }
 
 function resetSession() {
