@@ -273,6 +273,19 @@ function showFirstHint() {
     // Track hint usage
     hintsUsed.push(currentHints[currentHintIndex]);
     currentHintIndex++;
+    
+    // Re-render MathJax for the hint
+    setTimeout(() => {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise();
+        }
+    }, 100);
+    
+    // Show hint feedback for the first hint
+    setTimeout(() => {
+        document.getElementById('hint-feedback-container').classList.remove('hidden');
+        document.getElementById('action-buttons').classList.add('hidden');
+    }, 1000);
 }
 
 function showIncorrectAnswer() {
@@ -305,6 +318,13 @@ function showHint() {
         // Track hint usage
         hintsUsed.push(currentHints[currentHintIndex]);
         currentHintIndex++;
+        
+        // Re-render MathJax for the hint
+        setTimeout(() => {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise();
+            }
+        }, 100);
         
         // Show hint feedback
         document.getElementById('hint-feedback-container').classList.remove('hidden');
