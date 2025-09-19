@@ -1,3 +1,5 @@
+import * as LDClient from 'launchdarkly-js-client-sdk';
+
 // Global state
 let currentQuestion = null;
 let currentHints = [];
@@ -18,6 +20,7 @@ let ldClient = null;
 let activeHintVariant = 'control'; // default if LD unavailable
 
 
+
 function initializeLaunchDarkly() {
     try {
         // Skip LD on localhost only
@@ -30,8 +33,6 @@ function initializeLaunchDarkly() {
             kind: 'user',
             key: 'context-key-123abc'
         };
-
-        const LDClient = require('launchdarkly-js-client-sdk');
 
         const client = LDClient.initialize('68ccd8b8987d6c09973312f0', context);
         client.on('initialized', function () {
