@@ -14,7 +14,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
 }
@@ -52,6 +52,8 @@ header h1 {
     background: #f7fafc;
     border-radius: 10px;
     border-left: 4px solid #667eea;
+    overflow-x: auto;
+    word-wrap: break-word;
 }
 
 /* Answer section */
@@ -126,6 +128,44 @@ header h1 {
 #feedback-content {
     font-size: 1.1rem;
     margin-bottom: 20px;
+    overflow-x: auto;
+    word-wrap: break-word;
+}
+
+.solution {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #28a745;
+    overflow-x: auto;
+    word-wrap: break-word;
+}
+
+.solution h4 {
+    margin-bottom: 10px;
+    color: #28a745;
+    font-size: 1.2rem;
+}
+
+.solution p {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.hint-content {
+    margin-top: 15px;
+    padding: 15px;
+    background: #fff3cd;
+    border-radius: 8px;
+    border-left: 3px solid #ffc107;
+    overflow-x: auto;
+    word-wrap: break-word;
+}
+
+.hint-content p {
+    margin-bottom: 10px;
+    line-height: 1.6;
 }
 
 #feedback-content h3 {
