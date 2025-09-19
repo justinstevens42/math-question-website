@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "launchdarkly-js-client-sdk": "^3.9.0"
+  }
+}

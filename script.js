@@ -260,19 +260,6 @@ function showFirstHint() {
     // Track hint usage
     hintsUsed.push(currentHints[currentHintIndex]);
     currentHintIndex++;
-    
-    // Re-render MathJax for the hint with proper timing
-    setTimeout(() => {
-        if (window.MathJax && MathJax.typesetPromise) {
-            MathJax.typesetPromise();
-        }
-    }, 100);
-    
-    // Show hint feedback for the first hint
-    setTimeout(() => {
-        document.getElementById('hint-feedback-container').classList.remove('hidden');
-        document.getElementById('action-buttons').classList.add('hidden');
-    }, 1000);
 }
 
 function showIncorrectAnswer() {
@@ -287,13 +274,6 @@ function showIncorrectAnswer() {
     
     feedbackContainer.classList.remove('hidden');
     document.getElementById('action-buttons').classList.remove('hidden');
-    
-    // Re-render MathJax in case there's any LaTeX in the feedback
-    setTimeout(() => {
-        if (window.MathJax && MathJax.typesetPromise) {
-            MathJax.typesetPromise();
-        }
-    }, 100);
 }
 
 function showHint() {
@@ -312,13 +292,6 @@ function showHint() {
         // Track hint usage
         hintsUsed.push(currentHints[currentHintIndex]);
         currentHintIndex++;
-        
-        // Re-render MathJax for the hint with proper timing
-        setTimeout(() => {
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise();
-            }
-        }, 100);
         
         // Show hint feedback
         document.getElementById('hint-feedback-container').classList.remove('hidden');
