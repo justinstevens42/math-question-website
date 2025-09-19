@@ -17,17 +17,6 @@ let sessionStats = {
 let ldClient = null;
 let activeHintVariant = 'control'; // default if LD unavailable
 
-// Support both browser (CDN) and bundler (require) environments
-let LDClient = null;
-try {
-    if (typeof window !== 'undefined' && window.LDClient) {
-        LDClient = window.LDClient;
-    } else if (typeof require === 'function') {
-        // This will work only if bundled; harmless in browser where require is undefined
-        // eslint-disable-next-line no-undef
-        LDClient = require('launchdarkly-js-client-sdk');
-    }
-} catch (_) { /* ignore */ }
 
 function initializeLaunchDarkly() {
     try {
@@ -37,17 +26,14 @@ function initializeLaunchDarkly() {
             console.log('Skipping LaunchDarkly on localhost');
             return;
         }
-        // Use the CDN global exactly as in your snippet
-        if (!(window.LDClient && typeof window.LDClient.initialize === 'function')) {
-            // If the script isn't ready yet, try once on window load
-            window.addEventListener('load', initializeLaunchDarkly, { once: true });
-            return;
-        }
         const context = {
             kind: 'user',
             key: 'context-key-123abc'
         };
-        const client = window.LDClient.initialize('68ccd8b8987d6c09973312f0', context);
+
+        const LDClient = require('launchdarkly-js-client-sdk');
+
+        const client = LDClient.initialize('68ccd8b8987d6c09973312f0', context);
         client.on('initialized', function () {
             client.track('68ccd8b8987d6c09973312ef');
             console.log('SDK successfully initialized!');
