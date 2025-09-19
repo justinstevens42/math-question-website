@@ -1,4 +1,3 @@
-
 // Global state
 let currentQuestion = null;
 let currentHints = [];
@@ -16,7 +15,24 @@ let sessionStats = {
 
 // --- LaunchDarkly setup (A/B hints) ---
 let ldClient = null;
-let activeHintVariant = 'control'; // default if LD unavailable
+let activeHintVariant = 'control'; // The variant for the user's session
+
+// Create a stable anonymous key for the user to ensure consistent bucketing
+function getOrCreateLdUserKey() {
+    const storageKey = 'ld_user_key';
+    let key = localStorage.getItem(storageKey);
+    if (key) return key;
+
+    // Use crypto for a high-quality random key if available
+    if (window.crypto && window.crypto.randomUUID) {
+        key = window.crypto.randomUUID();
+    } else {
+        // Fallback for older browsers
+        key = 'user-' + Math.random().toString(36).substring(2, 15) + Date.now();
+    }
+    localStorage.setItem(storageKey, key);
+    return key;
+}
 
 function initializeLaunchDarkly() {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -35,7 +51,8 @@ function initializeLaunchDarkly() {
     // Verbatim initialization code
     const context = {
       kind: 'user',
-      key: 'context-key-123abc' // Should be a unique, stable identifier for production
+      key: getOrCreateLdUserKey(), // Use our stable anonymous key
+      anonymous: true
     };
     const client = window.LDClient.initialize('68ccd8b8987d6c09973312f0', context);
 
@@ -48,18 +65,23 @@ function initializeLaunchDarkly() {
     // Wire up the client for our experiment logic
     ldClient = client;
     ldClient.on('ready', function () {
-        activeHintVariant = ldClient.variation('hints-llm-variant', 'control');
-        console.log('Using hint variant:', activeHintVariant);
+        // Fetch a boolean flag to decide between two variants.
+        // false = claude, true = chatgpt
+        const useChatGPT = ldClient.variation('use-chatgpt-hints', false); // Default to false (Claude)
+        activeHintVariant = useChatGPT ? 'chatgpt' : 'claude';
+        console.log(`LaunchDarkly assigned this user to hint variant: ${activeHintVariant}`);
     });
 }
 
 // Safe tracking wrapper; no-ops if LD unavailable
-function ldTrack(eventKey, data, value) {
+function ldTrack(eventKey, data) {
     try {
         if (ldClient && typeof ldClient.track === 'function') {
-            ldClient.track(eventKey, data, value);
+            ldClient.track(eventKey, data);
         }
-    } catch (_) { /* ignore */ }
+    } catch (e) {
+        console.warn("LD track failed", e);
+    }
 }
 
 // Select hint steps for a question, supporting two schemas:
@@ -144,6 +166,7 @@ function setupEventListeners() {
 
 function loadNextQuestion() {
     console.log('Loading next question...');
+    
     console.log('Available questions:', questions.length);
     console.log('Current question index:', currentQuestionIndex);
     
@@ -205,19 +228,12 @@ function submitAnswer() {
     const correctAnswer = currentQuestion.answer;
 
     if (userAnswer === correctAnswer) {
-        // Track solve event
-        ldTrack('solve-correct', { variant: activeHintVariant, questionId: currentQuestion.id }, 1);
         if (isFirstAttempt) {
             sessionStats.correctFirstTry++;
-            showCorrectAnswer();
-        } else {
-            showCorrectAnswer();
         }
+        showCorrectAnswer();
     } else {
-        // Track incorrect attempt as 0 for solve metric (optional)
-        ldTrack('solve-correct', { variant: activeHintVariant, questionId: currentQuestion.id }, 0);
         if (isFirstAttempt) {
-            // First wrong attempt → show the first hint
             isFirstAttempt = false;
             showFirstHint();
         } else {
@@ -286,6 +302,10 @@ function showCorrectAnswer() {
             MathJax.typesetPromise();
         }
     }, 100);
+
+    // --- New Tracking ---
+    trackProblemCompletion(true);
+    // --- End New Tracking ---
 }
 
 // Handler for the Next Question button to advance explicitly
@@ -426,6 +446,10 @@ function showSolutionAfterHints() {
     feedbackContent.innerHTML = html;
     feedbackContainer.classList.remove('hidden');
     document.getElementById('hint-feedback-container').classList.add('hidden');
+
+    // --- New Tracking ---
+    trackProblemCompletion(false);
+    // --- End New Tracking ---
     
     // Update stats similar to the correct flow (but without incrementing correctFirstTry)
     sessionStats.totalQuestions++;
@@ -444,14 +468,37 @@ function showSolutionAfterHints() {
 
 function hintFeedback(helpful) {
     // Track hint helpfulness per variant
-    ldTrack('hint-helpful', { variant: activeHintVariant, questionId: currentQuestion.id }, helpful ? 1 : 0);
+    const eventData = {
+        questionId: currentQuestion.id,
+        variant: activeHintVariant,
+        hintIndex: currentHintIndex,
+        helpful: helpful
+    };
+    ldTrack('hint-feedback', eventData);
     
     // Hide the feedback container
     document.getElementById('hint-feedback-container').classList.add('hidden');
     
     // You can add more sophisticated tracking here if needed
     // Optional additional instrumentation could go here
+    if (helpful) {
+        console.log('User found the hint helpful');
+    } else {
+        console.log('User did not find the hint helpful');
+    }
 }
+
+// --- New Tracking Function ---
+function trackProblemCompletion(solvedCorrectly) {
+    const eventData = {
+        questionId: currentQuestion.id,
+        variant: activeHintVariant,
+        solved: solvedCorrectly,
+        hintsUsedCount: hintsUsed.length
+    };
+    ldTrack('problem-completed', eventData);
+}
+// --- End New Tracking Function ---
 
 function resetSession() {
     currentQuestionIndex = 0;

@@ -6,7 +6,7 @@
         "solution": "Using the sum of cubes factorization which says that $x^3+y^3=(x+y)(x^2-xy+y^2)$, we see that $1343=10^3+7^3=(10+7)(10^2-10\\cdot 7+7^2)=17\\cdot 79$. Since $79$ is prime, the largest prime factor is $\\boxed{79}$.",
         "hints": [
             {
-                "variant": "control",
+                "variant": "claude",
                 "steps": [
                     "Notice that 1343 is expressed as a sum of two cubes: $10^3 + 7^3$. This suggests we might be able to factor it using a special formula.",
                     "Recall the sum of cubes factorization formula: $x^3 + y^3 = (x + y)(x^2 - xy + y^2)$.",
@@ -15,7 +15,7 @@
                 ]
             },
             {
-                "variant": "llm-A",
+                "variant": "chatgpt",
                 "steps": [
                     "Look for a special factoring identity that fits $a^3+b^3$.",
                     "$a^3+b^3=(a+b)(a^2-ab+b^2)$. Substitute $a=10$, $b=7$.",
