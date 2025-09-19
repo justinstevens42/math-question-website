@@ -67,7 +67,7 @@ function initializeLaunchDarkly() {
     ldClient.on('ready', function () {
         // Fetch a boolean flag to decide between two variants.
         // false = claude, true = chatgpt
-        const useChatGPT = ldClient.variation('use-chatgpt-hints', false); // Default to false (Claude)
+        const useChatGPT = ldClient.variation('hint-variant-experiment', false); // Default to false (Claude)
         activeHintVariant = useChatGPT ? 'chatgpt' : 'claude';
         console.log(`LaunchDarkly assigned this user to hint variant: ${activeHintVariant}`);
     });
