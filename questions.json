@@ -8,19 +8,24 @@
             {
                 "variant": "claude",
                 "steps": [
-                    "Notice that 1343 is expressed as a sum of two cubes: $10^3 + 7^3$. This suggests we might be able to factor it using a special formula.",
-                    "Recall the sum of cubes factorization formula: $x^3 + y^3 = (x + y)(x^2 - xy + y^2)$.",
-                    "Apply the identity with $x=10$, $y=7$: $(10+7)(10^2-10\\cdot7+7^2)$.",
-                    "Compute the factors to get $17$ and $79$; the largest prime factor is $79$."
-                ]
+                    "Notice that the expression $10^3 + 7^3$ has the form $x^3 + y^3$ where $x = 10$ and $y = 7$. This suggests using a special algebraic identity.",
+                    "Recall the sum of cubes factorization formula: $a^3 + b^3 = (a + b)(a^2 - ab + b^2)$. Apply this identity to factor $10^3 + 7^3$.",
+                    "Calculate the first factor: $10 + 7$. This should give you a small number that you can easily check for primality.",
+                    "Calculate the second factor: $10^2 - 10 \\cdot 7 + 7^2$. Work this out step by step: $100 - 70 + 49$.",
+                    "Now you have factored 1343 into the product of two integers. Check whether each factor is prime by testing for divisibility by small primes.",
+                    "Compare the two factors you found to determine which one is larger. The larger factor will be your answer, assuming both are prime."
+                  ]
             },
             {
                 "variant": "chatgpt",
                 "steps": [
-                    "Look for a special factoring identity that fits $a^3+b^3$.",
-                    "$a^3+b^3=(a+b)(a^2-ab+b^2)$. Substitute $a=10$, $b=7$.",
-                    "Evaluate both factors: $10+7=17$ and $10^2-10\\cdot7+7^2=79$."
-                ]
+                    "Notice that $1343$ is written as $10^3 + 7^3$, which has the form $x^3 + y^3$.",
+                    "Recall the sum of cubes identity: $x^3 + y^3 = (x + y)(x^2 - xy + y^2)$.",
+                    "Apply the identity with $x = 10$ and $y = 7$ to factor $10^3 + 7^3$.",
+                    "Compute each factor numerically: first evaluate $(x + y)$, then evaluate $(x^2 - xy + y^2)$.",
+                    "Test the resulting factors for primality (use divisibility checks up to $\\sqrt{n}$); if a factor is composite, factor it further.",
+                    "From the prime factors you obtain, determine which one is the largest."
+                  ]
             }
         ]
     }
