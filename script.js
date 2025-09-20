@@ -1,3 +1,5 @@
+const DEBUG = false; // Set to true to see detailed logs in the console
+
 // Global state
 let currentQuestion = null;
 let currentHints = [];
@@ -37,14 +39,14 @@ function getOrCreateLdUserKey() {
 function initializeLaunchDarkly() {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isLocal) {
-        console.log("Skipping LaunchDarkly on localhost.");
+        if (DEBUG) console.log("Skipping LaunchDarkly on localhost.");
         return;
     }
 
     // Wait for the SDK to be available on the window object
     if (!window.LDClient) {
         window.addEventListener('load', initializeLaunchDarkly, { once: true });
-        console.log("LaunchDarkly SDK not ready, will try again on page load.");
+        if (DEBUG) console.log("LaunchDarkly SDK not ready, will try again on page load.");
         return;
     }
 
@@ -59,7 +61,7 @@ function initializeLaunchDarkly() {
     client.on('initialized', function () {
       // Tracking your memberId lets us know you are connected.
       client.track('68ccd8b8987d6c09973312ef');
-      console.log('SDK successfully initialized!');
+      if (DEBUG) console.log('SDK successfully initialized!');
     });
 
     // Wire up the client for our experiment logic
@@ -69,7 +71,7 @@ function initializeLaunchDarkly() {
         // false = claude, true = chatgpt
         const useChatGPT = ldClient.variation('hint-variant-experiment', false); // Default to false (Claude)
         activeHintVariant = useChatGPT ? 'chatgpt' : 'claude';
-        console.log(`LaunchDarkly assigned this user to hint variant: ${activeHintVariant}`);
+        if (DEBUG) console.log(`LaunchDarkly assigned this user to hint variant: ${activeHintVariant}`);
     });
 }
 
@@ -110,7 +112,7 @@ async function loadQuestions() {
         }
         const data = await response.json();
         questions = data;
-        console.log(`Loaded ${questions.length} questions from JSON file`);
+        if (DEBUG) console.log(`Loaded ${questions.length} questions from JSON file`);
         // Do not log full questions to avoid exposing answers in console
         return true;
     } catch (error) {
@@ -141,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
                 window.MathJax.startup.promise.then(() => {
-                    console.log('MathJax is ready! Version:', window.MathJax.version);
+                    if (DEBUG) console.log('MathJax is ready! Version:', window.MathJax.version);
                     loadNextQuestion();
                 });
                 return;
@@ -165,10 +167,10 @@ function setupEventListeners() {
 }
 
 function loadNextQuestion() {
-    console.log('Loading next question...');
+    if (DEBUG) console.log('Loading next question...');
     
-    console.log('Available questions:', questions.length);
-    console.log('Current question index:', currentQuestionIndex);
+    if (DEBUG) console.log('Available questions:', questions.length);
+    if (DEBUG) console.log('Current question index:', currentQuestionIndex);
     
     // Check if we've gone through all questions
     if (currentQuestionIndex >= questions.length) {
@@ -189,7 +191,7 @@ function loadNextQuestion() {
     }
     
     currentQuestion = questions[currentQuestionIndex];
-    console.log('Selected question id:', currentQuestion.id);
+    if (DEBUG) console.log('Selected question id:', currentQuestion.id);
     
     currentHints = selectHintSteps(currentQuestion);
     currentHintIndex = 0;
@@ -338,6 +340,9 @@ function showFirstHint() {
         `;
     }
     
+    // Add a prompt for the user to try again
+    hintsHTML += `<p style="margin-top: 15px; font-weight: bold;">Now, try solving the problem again with these hints.</p>`;
+
     feedbackContent.innerHTML = hintsHTML;
     
     feedbackContainer.classList.remove('hidden');
@@ -366,9 +371,10 @@ function showHint() {
         
         feedbackContainer.className = 'feedback-container hint';
         
-        // Show all hints up to the current one
+        // Show all hints up to the current one, with a consistent header
         let hintsHTML = `
-            <h3>Here are all the hints so far:</h3>
+            <h3>Not quite right</h3>
+            <p>Here are all the hints so far:</p>
         `;
         
         for (let i = 0; i <= currentHintIndex; i++) {
@@ -379,6 +385,9 @@ function showHint() {
             `;
         }
         
+        // Add a prompt for the user to try again
+        hintsHTML += `<p style="margin-top: 15px; font-weight: bold;">Now, try solving the problem again with these hints.</p>`;
+
         feedbackContent.innerHTML = hintsHTML;
         
         // Track hint usage
@@ -482,9 +491,9 @@ function hintFeedback(helpful) {
     // You can add more sophisticated tracking here if needed
     // Optional additional instrumentation could go here
     if (helpful) {
-        console.log('User found the hint helpful');
+        if (DEBUG) console.log('User found the hint helpful');
     } else {
-        console.log('User did not find the hint helpful');
+        if (DEBUG) console.log('User did not find the hint helpful');
     }
 }
 
